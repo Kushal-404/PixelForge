@@ -1,0 +1,499 @@
+/* =====================================================================
+   PIXELFORGE — design tokens
+   All theming lives here as CSS custom properties. Swap these to
+   reskin the whole app without touching layout rules below.
+   ===================================================================== */
+:root {
+  /* --- surfaces -------------------------------------------------- */
+  --bg: #100e1c;
+  --bg-pattern: #15122400;
+  --surface: #1b1830;
+  --surface-raised: #23203d;
+  --surface-sunken: #0d0b17;
+  --border: #332c52;
+  --border-soft: #241f3a;
+
+  /* --- text -------------------------------------------------------- */
+  --text: #f1eefc;
+  --text-dim: #9a91bd;
+  --text-faint: #66608a;
+
+  /* --- accents ------------------------------------------------------ */
+  --accent-violet: #7c5cff;
+  --accent-violet-dim: #5a3fd9;
+  --accent-cyan: #22e0c9;
+  --accent-amber: #ffcc4d;
+  --accent-coral: #ff5470;
+
+  /* --- checkerboard (transparency) squares --------------------------- */
+  --check-a: #1d1a33;
+  --check-b: #221f3c;
+
+  /* --- type ------------------------------------------------------ */
+  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+
+  /* --- misc -------------------------------------------------------- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --transition-fast: 120ms ease;
+  --transition-med: 200ms ease;
+  --shadow-panel: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+}
+
+/* =====================================================================
+   RESET / BASE
+   ===================================================================== */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 0) 0 0 / 22px 22px,
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+/* Respect users who've asked for less motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Consistent, visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* =====================================================================
+   HEADER
+   ===================================================================== */
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 20px clamp(16px, 4vw, 40px);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The 5x5 pixel "logo" — built the same way the real canvas is built,
+   just hard-coded in HTML since it never changes. */
+.brand-mark {
+  display: grid;
+  grid-template-columns: repeat(5, 5px);
+  grid-template-rows: repeat(5, 5px);
+  gap: 2px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.brand-mark .p {
+  width: 5px;
+  height: 5px;
+  background: transparent;
+}
+
+.brand-mark .p--violet {
+  background: var(--accent-violet);
+}
+.brand-mark .p--cyan {
+  background: var(--accent-cyan);
+}
+.brand-mark .p--amber {
+  background: var(--accent-amber);
+}
+
+.brand-text h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.brand-tagline {
+  margin: 2px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  letter-spacing: 0.02em;
+}
+
+/* =====================================================================
+   LAYOUT
+   ===================================================================== */
+.app-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 24px clamp(16px, 4vw, 40px) 48px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .app-layout {
+    flex-direction: column;
+  }
+}
+
+/* =====================================================================
+   SIDEBAR / PANELS
+   ===================================================================== */
+.sidebar {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 860px) {
+  .sidebar {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-panel);
+}
+
+.panel-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+/* --- size fields ----------------------------------------------------- */
+.field-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.field--grow {
+  flex: 1;
+}
+
+.field-label {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.field input[type="number"] {
+  width: 100%;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast);
+}
+
+.field input[type="number"]:hover {
+  border-color: var(--accent-violet-dim);
+}
+
+.field input[type="number"]:focus {
+  border-color: var(--accent-violet);
+  outline: none;
+}
+
+.preset-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  flex: 1;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.chip:hover {
+  color: var(--text);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+/* --- buttons ----------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast), background var(--transition-fast);
+}
+
+.btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-violet), var(--accent-violet-dim));
+  color: white;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+.btn-secondary {
+  background: var(--surface-raised);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+/* --- tool grid ----------------------------------------------------- */
+.tool-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tool-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    background var(--transition-fast), transform var(--transition-fast);
+}
+
+.tool-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tool-btn span {
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.tool-btn:hover {
+  color: var(--text);
+  border-color: var(--accent-violet-dim);
+  transform: translateY(-1px);
+}
+
+/* Selected tool gets a clearly distinct, glowing active state */
+.tool-btn.is-active {
+  background: rgba(124, 92, 255, 0.14);
+  border-color: var(--accent-violet);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent-violet) inset, 0 0 18px -6px var(--accent-violet);
+}
+
+.tool-btn--danger:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+/* =====================================================================
+   COLOR PANEL
+   ===================================================================== */
+.color-current-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.color-current-swatch {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--accent-violet);
+}
+
+.field input[type="color"] {
+  width: 100%;
+  height: 38px;
+  padding: 2px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.palette {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.palette-swatch {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.palette-swatch:hover {
+  transform: scale(1.08);
+}
+
+.palette-swatch.is-selected {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent-cyan);
+}
+
+/* =====================================================================
+   HINT TEXT
+   ===================================================================== */
+.hint-text {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+.hint-text--center {
+  text-align: center;
+}
+
+/* =====================================================================
+   CANVAS STAGE
+   ===================================================================== */
+.canvas-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 60vh;
+}
+
+.canvas-frame {
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+}
+
+/* The grid itself. Column/row counts are written as inline styles by
+   JS at creation time (see script.js -> generateGrid). The checkerboard
+   pattern behind it mimics the transparency indicator used by design
+   tools, so an erased / never-painted pixel is easy to read as "empty"
+   rather than "black". */
+.pixel-canvas {
+  display: grid;
+  width: min(64vmin, 560px);
+  background-image: repeating-conic-gradient(
+    var(--check-a) 0% 25%,
+    var(--check-b) 0% 50%
+  );
+  background-size: 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  /* Prevents the drag gesture from also selecting page text */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* Individual cell. Subtle hairline border so the grid structure reads
+   at a glance without competing with the artwork colors. */
+.pixel {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  /* Cancel out the double-border seam between adjacent cells */
+  margin: -1px 0 0 -1px;
+}
+
+.pixel:hover {
+  box-shadow: inset 0 0 0 1px var(--accent-cyan);
+}
