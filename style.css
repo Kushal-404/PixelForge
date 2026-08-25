@@ -1,46 +1,44 @@
 /* =====================================================================
-   PIXELFORGE — design tokens
-   All theming lives here as CSS custom properties. Swap these to
-   reskin the whole app without touching layout rules below.
+   PIXELFORGE — Premium SaaS Design Tokens
    ===================================================================== */
 :root {
-  /* --- surfaces -------------------------------------------------- */
-  --bg: #100e1c;
-  --bg-pattern: #15122400;
-  --surface: #1b1830;
-  --surface-raised: #23203d;
-  --surface-sunken: #0d0b17;
-  --border: #332c52;
-  --border-soft: #241f3a;
+  /* --- surfaces (Monochrome & Deep) ------------------------------ */
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface-raised: #141414;
+  --surface-sunken: #050505;
+  --border: #262626;
+  --border-soft: #171717;
+  --glass-bg: rgba(10, 10, 10, 0.85);
 
-  /* --- text -------------------------------------------------------- */
-  --text: #f1eefc;
-  --text-dim: #9a91bd;
-  --text-faint: #66608a;
+  /* --- text (High Contrast) ---------------------------------------- */
+  --text: #f5f5f5;
+  --text-dim: #a3a3a3;
+  --text-faint: #525252;
 
-  /* --- accents ------------------------------------------------------ */
-  --accent-violet: #7c5cff;
-  --accent-violet-dim: #5a3fd9;
-  --accent-cyan: #22e0c9;
-  --accent-amber: #ffcc4d;
-  --accent-coral: #ff5470;
+  /* --- accents (Vibrant Neon) -------------------------------------- */
+  --accent-violet: #818cf8; /* Indigo */
+  --accent-violet-dim: #4f46e5;
+  --accent-cyan: #2dd4bf;   /* Teal */
+  --accent-amber: #fbbf24;
+  --accent-coral: #f43f5e;
 
-  /* --- checkerboard (transparency) squares --------------------------- */
-  --check-a: #1d1a33;
-  --check-b: #221f3c;
+  /* --- checkerboard (Stark and Clean) ------------------------------ */
+  --check-a: #1c1c1c; /* Lightened for better contrast */
+  --check-b: #2a2a2a; /* Lightened for better contrast */
 
   /* --- type ------------------------------------------------------ */
-  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Inter", sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 
-  /* --- misc -------------------------------------------------------- */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --transition-fast: 120ms ease;
-  --transition-med: 200ms ease;
-  --shadow-panel: 0 20px 40px -20px rgba(0, 0, 0, 0.6);
+  /* --- misc (Sharp and Crisp) -------------------------------------- */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.8);
+  --shadow-panel: 0 24px 48px -12px rgba(0, 0, 0, 1);
 }
 
 /* =====================================================================
@@ -50,23 +48,26 @@
   box-sizing: border-box;
 }
 
-html,
-body {
+html, body {
   height: 100%;
 }
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.035) 1px, transparent 0) 0 0 / 22px 22px,
-    var(--bg);
+  /* Tech-grid background pattern */
+  background-color: var(--bg);
+  background-image: 
+    linear-gradient(var(--border-soft) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: center center;
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2 {
+h1, h2 {
   margin: 0;
   font-family: var(--font-display);
 }
@@ -76,18 +77,15 @@ button {
   color: inherit;
 }
 
-/* Respect users who've asked for less motion */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
-    animation: none !important;
-  }
-}
+/* Minimalist Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
-/* Consistent, visible keyboard focus everywhere */
 :focus-visible {
-  outline: 2px solid var(--accent-cyan);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent-violet);
   border-radius: var(--radius-sm);
 }
 
@@ -97,57 +95,49 @@ button {
 .app-header {
   display: flex;
   align-items: center;
-  padding: 20px clamp(16px, 4vw, 40px);
-  border-bottom: 1px solid var(--border-soft);
+  padding: 16px clamp(20px, 4vw, 48px);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-/* The 5x5 pixel "logo" — built the same way the real canvas is built,
-   just hard-coded in HTML since it never changes. */
 .brand-mark {
   display: grid;
-  grid-template-columns: repeat(5, 5px);
-  grid-template-rows: repeat(5, 5px);
-  gap: 2px;
-  padding: 6px;
-  background: var(--surface);
+  grid-template-columns: repeat(5, 4px);
+  grid-template-rows: repeat(5, 4px);
+  gap: 1px;
+  padding: 4px;
+  background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
-.brand-mark .p {
-  width: 5px;
-  height: 5px;
-  background: transparent;
-}
-
-.brand-mark .p--violet {
-  background: var(--accent-violet);
-}
-.brand-mark .p--cyan {
-  background: var(--accent-cyan);
-}
-.brand-mark .p--amber {
-  background: var(--accent-amber);
-}
+.brand-mark .p { width: 4px; height: 4px; background: transparent; }
+.brand-mark .p--violet { background: var(--accent-violet); }
+.brand-mark .p--cyan { background: var(--accent-cyan); }
+.brand-mark .p--amber { background: var(--accent-amber); }
 
 .brand-text h1 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .brand-tagline {
-  margin: 2px 0 0;
+  margin: 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: var(--text-faint);
-  letter-spacing: 0.02em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* =====================================================================
@@ -157,15 +147,13 @@ button {
   display: flex;
   gap: 24px;
   align-items: flex-start;
-  padding: 24px clamp(16px, 4vw, 40px) 48px;
-  max-width: 1280px;
+  padding: 32px clamp(20px, 4vw, 48px) 64px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
 @media (max-width: 860px) {
-  .app-layout {
-    flex-direction: column;
-  }
+  .app-layout { flex-direction: column; }
 }
 
 /* =====================================================================
@@ -175,102 +163,92 @@ button {
   flex: 0 0 280px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 @media (max-width: 860px) {
-  .sidebar {
-    flex: 1 1 auto;
-    width: 100%;
-  }
+  .sidebar { flex: 1 1 auto; width: 100%; }
 }
 
 .panel {
   background: var(--surface);
-  border: 1px solid var(--border-soft);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 24px;
   box-shadow: var(--shadow-panel);
 }
 
 .panel-title {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-dim);
-  margin-bottom: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  margin-bottom: 20px;
 }
 
 /* --- size fields ----------------------------------------------------- */
 .field-row {
   display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
-
-.field--grow {
+  gap: 8px;
   flex: 1;
 }
 
 .field-label {
-  font-size: 0.68rem;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 500;
 }
 
 .field input[type="number"] {
   width: 100%;
-  background: var(--surface-sunken);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.9rem;
-  transition: border-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
-.field input[type="number"]:hover {
-  border-color: var(--accent-violet-dim);
-}
-
+.field input[type="number"]:hover { border-color: var(--text-faint); }
 .field input[type="number"]:focus {
-  border-color: var(--accent-violet);
-  outline: none;
+  border-color: var(--text);
+  background: var(--surface-raised);
 }
 
 .preset-row {
   display: flex;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .chip {
   flex: 1;
-  background: var(--surface-sunken);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   padding: 6px 4px;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  text-align: center;
+  transition: all var(--transition-fast);
 }
 
 .chip:hover {
   color: var(--text);
-  border-color: var(--accent-cyan);
-  transform: translateY(-1px);
+  border-color: var(--text);
+  background: var(--surface-raised);
 }
 
 /* --- buttons ----------------------------------------------------------- */
@@ -280,48 +258,36 @@ button {
   justify-content: center;
   gap: 8px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: transform var(--transition-fast), filter var(--transition-fast), background var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
-.btn svg {
-  width: 16px;
-  height: 16px;
-  flex: none;
-}
-
-.btn-block {
-  width: 100%;
-}
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-block { width: 100%; }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-violet), var(--accent-violet-dim));
-  color: white;
+  background: var(--text);
+  color: var(--bg);
 }
 
 .btn-primary:hover {
-  filter: brightness(1.1);
+  background: var(--text-dim);
   transform: translateY(-1px);
 }
 
-.btn-primary:active {
-  transform: translateY(0);
-  filter: brightness(0.95);
-}
-
 .btn-secondary {
-  background: var(--surface-raised);
+  background: transparent;
   border-color: var(--border);
   color: var(--text);
 }
 
 .btn-secondary:hover {
-  border-color: var(--accent-cyan);
-  transform: translateY(-1px);
+  background: var(--surface-raised);
+  border-color: var(--text-faint);
 }
 
 /* --- tool grid ----------------------------------------------------- */
@@ -335,42 +301,32 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 8px;
-  background: var(--surface-sunken);
+  gap: 8px;
+  padding: 16px 8px;
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast),
-    background var(--transition-fast), transform var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
-.tool-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.tool-btn span {
-  font-size: 0.72rem;
-  font-weight: 500;
-}
+.tool-btn svg { width: 20px; height: 20px; }
+.tool-btn span { font-size: 0.75rem; font-weight: 500; }
 
 .tool-btn:hover {
+  background: var(--surface-raised);
   color: var(--text);
-  border-color: var(--accent-violet-dim);
-  transform: translateY(-1px);
 }
 
-/* Selected tool gets a clearly distinct, glowing active state */
 .tool-btn.is-active {
-  background: rgba(124, 92, 255, 0.14);
+  background: rgba(129, 140, 248, 0.1);
   border-color: var(--accent-violet);
-  color: var(--text);
-  box-shadow: 0 0 0 1px var(--accent-violet) inset, 0 0 18px -6px var(--accent-violet);
+  color: var(--accent-violet);
 }
 
 .tool-btn--danger:hover {
+  background: rgba(244, 63, 94, 0.1);
   border-color: var(--accent-coral);
   color: var(--accent-coral);
 }
@@ -380,29 +336,30 @@ button {
    ===================================================================== */
 .color-current-row {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .color-current-swatch {
   flex: none;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-sm);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--accent-violet);
 }
 
 .field input[type="color"] {
   width: 100%;
-  height: 38px;
+  height: 40px;
   padding: 2px;
-  background: var(--surface-sunken);
+  background: transparent;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
+.field input[type="color"]:hover { border-color: var(--text-faint); }
 
 .palette {
   display: grid;
@@ -413,37 +370,38 @@ button {
 .palette-swatch {
   aspect-ratio: 1 / 1;
   border-radius: var(--radius-sm);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   cursor: pointer;
   padding: 0;
-  transition: transform var(--transition-fast), border-color var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
 .palette-swatch:hover {
-  transform: scale(1.08);
+  transform: scale(1.1);
+  border-color: var(--text);
+  z-index: 2;
 }
 
 .palette-swatch.is-selected {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--accent-cyan);
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+  transform: scale(1.05);
 }
 
 /* =====================================================================
    HINT TEXT
    ===================================================================== */
 .hint-text {
-  margin: 10px 0 0;
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
+  margin: 16px 0 0;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
   color: var(--text-faint);
 }
 
-.hint-text--center {
-  text-align: center;
-}
+.hint-text--center { text-align: center; }
 
 /* =====================================================================
-   CANVAS STAGE
+   CANVAS STAGE & FRAME
    ===================================================================== */
 .canvas-stage {
   flex: 1;
@@ -451,34 +409,43 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 24px;
   min-height: 60vh;
+  position: relative;
 }
 
 .canvas-frame {
-  padding: 18px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
+  padding: 32px;
+  /* Distinct lighter surface to pop from grid background */
+  background: #111111; 
+  border: 1px solid #333333;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-panel);
+  /* Strong shadow to lift it off the page */
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
 }
 
-/* --- view toolbar (pan tool + zoom controls) -------------------------- */
+/* --- Floating Toolbar -------------------------- */
 .canvas-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border-soft);
-  border-radius: 999px;
-  padding: 6px 10px;
-  box-shadow: var(--shadow-panel);
+  gap: 4px;
+  background: rgba(20, 20, 20, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.8);
+  position: absolute;
+  top: -20px;
+  z-index: 10;
 }
 
 .toolbar-divider {
   width: 1px;
   height: 20px;
   background: var(--border);
+  margin: 0 8px;
   flex: none;
 }
 
@@ -487,142 +454,91 @@ button {
   align-items: center;
   justify-content: center;
   flex: none;
-  width: 30px;
-  height: 30px;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast),
-    transform var(--transition-fast), opacity var(--transition-fast);
+  transition: all var(--transition-fast);
 }
 
-.zoom-btn svg {
-  width: 15px;
-  height: 15px;
-}
+.zoom-btn svg { width: 16px; height: 16px; }
 
-.zoom-btn:hover {
+.zoom-btn:hover:not(:disabled) {
   color: var(--text);
-  border-color: var(--accent-cyan);
-  transform: translateY(-1px);
+  background: var(--surface-raised);
 }
 
-.zoom-btn:active {
-  transform: translateY(0);
-}
-
-/* Shared "this control is currently engaged" look — used by the Pan
-   tool toggle (same visual language as .tool-btn.is-active). */
 .zoom-btn.is-active {
-  background: rgba(124, 92, 255, 0.14);
-  border-color: var(--accent-violet);
-  color: var(--text);
-  box-shadow: 0 0 0 1px var(--accent-violet) inset, 0 0 12px -4px var(--accent-violet);
+  background: var(--text);
+  color: var(--bg);
 }
 
-/* Hitting a zoom limit disables the relevant button rather than
-   letting it silently do nothing, so the ceiling/floor is visible. */
 .zoom-btn:disabled {
-  opacity: 0.35;
+  opacity: 0.2;
   cursor: not-allowed;
-  transform: none;
-  border-color: var(--border);
-  color: var(--text-dim);
 }
 
 .zoom-level {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  min-width: 46px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  min-width: 50px;
   text-align: center;
   user-select: none;
 }
 
-/* The "window" onto the canvas. Panning used to rely on native
-   scrollbars (overflow: auto); it's now done entirely with a CSS
-   transform on #pixel-canvas (translate + scale), so anything the
-   canvas is moved or scaled outside this box must simply be clipped
-   instead of growing the page — hence overflow: hidden.
-
-   position: relative makes this element the coordinate frame that all
-   of the pan/zoom math in script.js is relative to (mouse positions
-   are measured from THIS element's top-left via getBoundingClientRect).
-
-   The two state classes below are toggled by JS to satisfy the
-   cursor: grab / grabbing requirement:
-     .is-pan-mode  → pan is available (Pan tool on, or Space held)
-     .is-panning   → a pan drag is actively in progress right now
-   .is-panning is listed after .is-pan-mode so it wins when both are
-   present (same specificity, later source order). */
+/* =====================================================================
+   FUNCTIONAL CANVAS CLASSES
+   ===================================================================== */
 .canvas-viewport {
   position: relative;
-  width: min(64vmin, 560px);
-  max-height: min(64vmin, 560px);
+  width: min(64vmin, 640px);
+  max-height: min(64vmin, 640px);
   overflow: hidden;
-  background: var(--surface-sunken);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  /* Distinct dark base and stronger border */
+  background: #000000;
+  border: 1px solid #4a4a4a;
+  border-radius: var(--radius-md);
+  /* Inner shadow to sink the canvas slightly */
+  box-shadow: inset 0 4px 20px rgba(0, 0, 0, 0.8);
 }
 
-.canvas-viewport.is-pan-mode {
-  cursor: grab;
-}
+.canvas-viewport.is-pan-mode { cursor: grab; }
+.canvas-viewport.is-panning { cursor: grabbing; }
+.canvas-viewport.is-pan-mode .pixel:hover { box-shadow: none; background-color: transparent; }
 
-.canvas-viewport.is-panning {
-  cursor: grabbing;
-}
-
-/* While actively panning, don't let the per-pixel hover ring imply
-   "click here to paint" — it's misleading when a click-drag right now
-   would pan the view instead. */
-.canvas-viewport.is-pan-mode .pixel:hover {
-  box-shadow: none;
-}
-
-/* The grid itself. Column/row counts and the aspect-ratio are written
-   as inline styles by JS at creation time (see script.js ->
-   generateGrid). Pan + zoom are applied here too, as a single
-   `transform: translate(x, y) scale(s)` (see script.js -> applyTransform).
-   The checkerboard pattern behind it mimics the transparency indicator
-   used by design tools, so an erased / never-painted pixel is easy to
-   read as "empty" rather than "black". */
 .pixel-canvas {
   display: grid;
   width: 100%;
-  background-image: repeating-conic-gradient(
-    var(--check-a) 0% 25%,
-    var(--check-b) 0% 50%
+  /* Corrected syntax for a crisp checkerboard */
+  background-image: conic-gradient(
+    var(--check-a) 90deg,
+    var(--check-b) 90deg 180deg,
+    var(--check-a) 180deg 270deg,
+    var(--check-b) 270deg
   );
-  background-size: 20px 20px;
+  background-size: 16px 16px;
   overflow: hidden;
-  /* transform-origin: 0 0 (top-left) rather than the default 50% 50%.
-     This is what makes the cursor-anchored zoom math in script.js work
-     out to a simple translate/scale formula — see the comments above
-     zoomAtPoint() for the full derivation. */
   transform-origin: 0 0;
-  /* Deliberately NO `transition` here: pan and wheel-zoom both update
-     the transform on every single mousemove/wheel event, so the
-     transform needs to track the input 1:1. Animating it would make
-     the canvas visibly lag behind the cursor while dragging/scrolling —
-     the opposite of what a design-tool-style zoom/pan should feel like. */
-  /* Prevents the drag gesture from also selecting page text */
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
 }
 
-/* Individual cell. Subtle hairline border so the grid structure reads
-   at a glance without competing with the artwork colors. */
 .pixel {
   background-color: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  /* Cancel out the double-border seam between adjacent cells */
+  /* Increased border opacity for highly visible grid lines */
+  border: 1px solid rgba(255, 255, 255, 0.15); 
   margin: -1px 0 0 -1px;
 }
 
 .pixel:hover {
-  box-shadow: inset 0 0 0 1px var(--accent-cyan);
+  /* Solid white hover state + slight background highlight */
+  box-shadow: inset 0 0 0 1px var(--text);
+  z-index: 1;
+  background-color: rgba(255, 255, 255, 0.1); 
 }
