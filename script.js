@@ -10,10 +10,11 @@
      3. Grid generation
      4. Painting primitives (setPixelColor, flood fill)
      5. Drawing event handlers (mousedown / mouseenter / mouseup)
-     6. Tool + color UI wiring
-     7. Clear canvas
-     8. PNG export
-     9. Init
+     6. Zoom & pan (view transform — never touches artwork data)
+     7. Tool + color UI wiring
+     8. Clear canvas
+     9. PNG export
+     10. Init
    ===================================================================== */
 
 /* ---------------------------------------------------------------------
@@ -40,6 +41,19 @@ const PALETTE_COLORS = [
 const MAX_GRID_SIZE = 64;
 const MIN_GRID_SIZE = 1;
 
+// Zoom bounds, expressed as raw CSS scale factors (1 = actual size),
+// matching the 0.5x–5x range professional design tools typically use.
+// Kept as plain constants rather than buried in the zoom functions so
+// the limits are easy to find and tune in one place.
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 5;
+
+// Multiplicative step per interaction, rather than a fixed +/- amount.
+// Multiplying keeps each step feeling proportional at any zoom level —
+// a flat "+0.2" would feel huge at 0.5x and barely noticeable at 4x.
+const WHEEL_ZOOM_FACTOR = 1.1; // ~10% per wheel tick
+const BUTTON_ZOOM_FACTOR = 1.2; // 20% per button click
+
 // `state` is the single source of truth for the artwork. The DOM is a
 // *rendering* of state, never the other way around — every mutation
 // goes through setPixelColor() so the two never drift apart.
@@ -54,6 +68,27 @@ const state = {
   currentColor: "#7c5cff",
   currentTool: "pen", // "pen" | "eraser" | "fill"
   isDrawing: false,
+
+  // --- view transform (pan/zoom) state ---
+  // These three describe the exact CSS transform currently applied to
+  // #pixel-canvas: `translate(translateX, translateY) scale(scale)`.
+  // Together they're the single source of truth for the view — DOM
+  // reads (getBoundingClientRect, etc.) are never trusted as state,
+  // only ever used to compute NEW values for these three numbers.
+  scale: 1, // 1 = actual size. Clamped to [ZOOM_MIN, ZOOM_MAX].
+  translateX: 0, // px offset of the canvas's origin from its normal position
+  translateY: 0,
+
+  // --- pan MODE vs. pan ACTION ---
+  // "Mode" = pan is available on left-click right now (either the Pan
+  // tool is toggled on, or Space is currently held). "Panning" = the
+  // mouse button is actually down and a drag is in progress. These are
+  // deliberately separate flags: you can be in pan mode without
+  // currently dragging (cursor: grab), and you're only ever "panning"
+  // (cursor: grabbing) while the left button is held in that mode.
+  isPanToolActive: false,
+  isSpacebarHeld: false,
+  isPanning: false,
 };
 
 /* ---------------------------------------------------------------------
@@ -72,6 +107,16 @@ const currentColorSwatch = document.getElementById("current-color-swatch");
 const paletteEl = document.getElementById("palette");
 const exportBtn = document.getElementById("export-btn");
 const exportSizeHint = document.getElementById("export-size-hint");
+const canvasViewport = document.getElementById("canvas-viewport");
+const panToolBtn = document.getElementById("pan-tool-btn");
+const zoomInBtn = document.getElementById("zoom-in-btn");
+const zoomOutBtn = document.getElementById("zoom-out-btn");
+const zoomLevelDisplay = document.getElementById("zoom-level");
+
+// Not part of `state` on purpose: this only exists transiently while a
+// pan drag is actually happening, and is always null the rest of the
+// time. It's "working memory" for a single gesture, not app state.
+let panDragOrigin = null;
 
 /* ---------------------------------------------------------------------
    3. GRID GENERATION
@@ -146,6 +191,10 @@ function generateGrid(cols, rows) {
   }
 
   updateExportSizeHint();
+
+  // A new grid always starts at actual size, un-panned — an old
+  // transform from a different-sized grid wouldn't line up on this one.
+  resetTransform();
 }
 
 function hasAnyPaintedPixel() {
@@ -237,9 +286,15 @@ function floodFill(startX, startY) {
  *   right-click / middle-click don't accidentally paint.
  * - The Fill tool is a single, immediate action — it does NOT set
  *   isDrawing, so dragging afterwards won't re-trigger it.
+ * - If pan mode is active (Pan tool on, or Space held), left-click is
+ *   reserved for panning instead of drawing: this handler returns
+ *   immediately WITHOUT calling preventDefault(), so the mousedown
+ *   keeps bubbling up from this pixel to #canvas-viewport, where
+ *   handleViewportMouseDown (section 6) picks it up and starts a pan.
  */
 function handlePixelMouseDown(event) {
   if (event.button !== 0) return;
+  if (isPanModeActive()) return; // let the pan handler on the viewport take it
   event.preventDefault();
 
   const x = Number(event.currentTarget.dataset.x);
@@ -292,11 +347,281 @@ window.addEventListener("mouseup", handleMouseUp);
 window.addEventListener("blur", handleMouseUp);
 
 /* ---------------------------------------------------------------------
-   6. TOOL + COLOR UI WIRING
+   6. ZOOM & PAN
+   ---------------------------------------------------------------------
+   How the view is tracked:
+     Three numbers in `state` — scale, translateX, translateY — fully
+     describe the view. Nothing about the grid itself (column/row
+     count, individual cell size, the data model) is touched by either
+     zooming or panning; this section only ever changes those three
+     numbers and the transform on #pixel-canvas.
+
+   How the view is applied to the DOM:
+     applyTransform() (below) is the ONLY place that writes the
+     transform:
+
+       canvasEl.style.transform =
+         `translate(${translateX}px, ${translateY}px) scale(${scale})`
+
+     Order matters: CSS applies translate() first, then scale(), which
+     is what lets translateX/translateY be expressed in plain screen
+     pixels (not scaled ones) — exactly what mouse coordinates are
+     measured in. Everything below is math to solve for the right
+     translateX/translateY given a scale change or a drag.
+
+   Why cursor-anchored zoom needs `transform-origin: 0 0`:
+     With the origin at the element's own top-left (set in style.css),
+     a point P that lives at position P in the canvas's own *unscaled*
+     coordinate space (i.e. "P pixels from the canvas's top-left at
+     100% zoom") ends up on screen at:
+         screenPos = translate + P * scale
+     That's the entire model. Every formula below is just this
+     equation solved for a different unknown.
+   --------------------------------------------------------------------- */
+
+/**
+ * Writes state.scale/translateX/translateY to the DOM and refreshes
+ * the dependent UI (percentage readout, disabled zoom buttons). This
+ * is the single choke point for rendering the view — every other
+ * function in this section computes new numbers and then calls this,
+ * the same pattern setPixelColor() uses for pixel colors.
+ */
+function applyTransform() {
+  canvasEl.style.transform =
+    `translate(${state.translateX}px, ${state.translateY}px) scale(${state.scale})`;
+
+  zoomLevelDisplay.textContent = `${Math.round(state.scale * 100)}%`;
+  zoomInBtn.disabled = state.scale >= ZOOM_MAX;
+  zoomOutBtn.disabled = state.scale <= ZOOM_MIN;
+}
+
+/** Zoom and pan both reset to a clean, un-transformed view. */
+function resetTransform() {
+  state.scale = 1;
+  state.translateX = 0;
+  state.translateY = 0;
+  applyTransform();
+}
+
+/**
+ * The zoom-at-a-point math. `anchorX`/`anchorY` are the point to keep
+ * fixed on screen, measured in pixels from #canvas-viewport's
+ * top-left (the same frame getBoundingClientRect() gives us) — for
+ * wheel-zoom that's the mouse position; for the +/- buttons it's the
+ * viewport's own center.
+ *
+ * Derivation, using the model above (screenPos = translate + P*scale):
+ *
+ *   1. Figure out what canvas-space point P is CURRENTLY under the
+ *      anchor, using the OLD scale/translate — solve the model for P:
+ *        anchor = translate_old + P * scale_old
+ *        =>  P = (anchor - translate_old) / scale_old
+ *
+ *   2. We want that exact same P to still be under the anchor after
+ *      the scale changes. Plug P back into the model, this time
+ *      solving for the NEW translate at the NEW scale:
+ *        anchor = translate_new + P * scale_new
+ *        =>  translate_new = anchor - P * scale_new
+ *
+ *   That's it — two substitutions of the same equation. Step 1 finds
+ *   "where on the art was the cursor pointing", step 2 finds "what
+ *   offset puts that same spot back under the cursor at the new size".
+ */
+function zoomAtPoint(nextScale, anchorX, anchorY) {
+  const clampedScale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, nextScale));
+
+  // Step 1: anchor point in canvas-local (unscaled) coordinates.
+  const canvasPointX = (anchorX - state.translateX) / state.scale;
+  const canvasPointY = (anchorY - state.translateY) / state.scale;
+
+  // Step 2: solve for the translate that keeps that point under the
+  // anchor at the new scale.
+  state.translateX = anchorX - canvasPointX * clampedScale;
+  state.translateY = anchorY - canvasPointY * clampedScale;
+  state.scale = clampedScale;
+
+  applyTransform();
+}
+
+/**
+ * Mouse-wheel zoom. Attached to #canvas-viewport (not the canvas or
+ * the window) so it only fires "while the cursor is hovering over the
+ * canvas/wrapper", per spec — scrolling anywhere else on the page
+ * behaves normally.
+ */
+function handleWheelZoom(event) {
+  // Wheel listeners default to passive (for scroll performance), which
+  // means preventDefault() is silently ignored unless we opt out via
+  // { passive: false } on the listener itself (see initZoomControls).
+  // Without this, the page would scroll AND the canvas would zoom.
+  event.preventDefault();
+
+  const viewportRect = canvasViewport.getBoundingClientRect();
+  const mouseX = event.clientX - viewportRect.left;
+  const mouseY = event.clientY - viewportRect.top;
+
+  // deltaY < 0 means the wheel scrolled "up/away from the user", which
+  // by convention means zoom IN. Multiplying (rather than adding) the
+  // current scale keeps each tick feeling like the same proportional
+  // step no matter how zoomed in/out you currently are.
+  const factor = event.deltaY < 0 ? WHEEL_ZOOM_FACTOR : 1 / WHEEL_ZOOM_FACTOR;
+  zoomAtPoint(state.scale * factor, mouseX, mouseY);
+}
+
+/**
+ * The +/- toolbar buttons reuse the exact same zoomAtPoint() math as
+ * the wheel — there's no separate "zoom from center" code path. A
+ * button click has no cursor position to anchor to, so it anchors to
+ * the viewport's own center instead, which is the intuitive fallback.
+ */
+function zoomInViaButton() {
+  const rect = canvasViewport.getBoundingClientRect();
+  zoomAtPoint(state.scale * BUTTON_ZOOM_FACTOR, rect.width / 2, rect.height / 2);
+}
+
+function zoomOutViaButton() {
+  const rect = canvasViewport.getBoundingClientRect();
+  zoomAtPoint(state.scale / BUTTON_ZOOM_FACTOR, rect.width / 2, rect.height / 2);
+}
+
+/**
+ * True whenever a left-click-drag should pan instead of draw: either
+ * the Pan tool is toggled on, or Space is currently being held down.
+ * This is the single function both the drawing handlers (section 5)
+ * and the pan handlers below consult, so the two code paths can never
+ * disagree about whose turn it is to handle left-click.
+ */
+function isPanModeActive() {
+  return state.isPanToolActive || state.isSpacebarHeld;
+}
+
+/**
+ * Starts a pan gesture. Only reached when isPanModeActive() is true —
+ * handlePixelMouseDown (section 5) already bailed out and let this
+ * mousedown bubble up from the clicked .pixel to #canvas-viewport.
+ */
+function handleViewportMouseDown(event) {
+  if (event.button !== 0) return;
+  if (!isPanModeActive()) return;
+  event.preventDefault();
+
+  state.isPanning = true;
+  // Snapshot where the drag started AND what translate was at that
+  // moment, so every subsequent mousemove can compute an absolute new
+  // translate from the total drag distance so far — simpler and more
+  // robust than accumulating small per-event deltas.
+  panDragOrigin = {
+    mouseX: event.clientX,
+    mouseY: event.clientY,
+    translateX: state.translateX,
+    translateY: state.translateY,
+  };
+  canvasViewport.classList.add("is-panning");
+}
+
+/**
+ * Drags the canvas by exactly the distance the mouse has moved since
+ * the pan started. Attached to `window` (see initPanControls) so, like
+ * the drawing stroke in section 5, the pan keeps tracking correctly
+ * even if the cursor briefly leaves #canvas-viewport mid-drag.
+ */
+function handleWindowMouseMoveForPan(event) {
+  if (!state.isPanning || !panDragOrigin) return;
+
+  const deltaX = event.clientX - panDragOrigin.mouseX;
+  const deltaY = event.clientY - panDragOrigin.mouseY;
+
+  state.translateX = panDragOrigin.translateX + deltaX;
+  state.translateY = panDragOrigin.translateY + deltaY;
+  applyTransform();
+}
+
+/** Ends the current pan gesture, wherever the mouse happens to be. */
+function handleWindowMouseUpForPan() {
+  state.isPanning = false;
+  panDragOrigin = null;
+  canvasViewport.classList.remove("is-panning");
+}
+
+/**
+ * Keeps the CSS "grab" cursor class in sync with isPanModeActive().
+ * Called any time something that feeds into that function changes:
+ * the Pan tool being toggled, or Space being pressed/released.
+ */
+function updatePanCursor() {
+  canvasViewport.classList.toggle("is-pan-mode", isPanModeActive());
+}
+
+/**
+ * Space-to-pan, the same convention used by Photoshop/Figma: holding
+ * Space temporarily enables pan mode no matter which drawing tool is
+ * selected, without changing state.currentTool at all — release Space
+ * and you're right back to whatever you were doing.
+ */
+function handleKeyDown(event) {
+  if (event.code !== "Space") return;
+  // event.repeat is true for the auto-repeated keydown events a held
+  // key fires; without this guard we'd re-run this on every repeat.
+  if (event.repeat) return;
+  // Don't hijack Space when it's being used for its normal job, e.g.
+  // activating a focused button via the keyboard, or (if one's ever
+  // added) typing into a text field.
+  if (["INPUT", "BUTTON", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+
+  event.preventDefault(); // stop the page itself from scrolling
+  state.isSpacebarHeld = true;
+  updatePanCursor();
+}
+
+function handleKeyUp(event) {
+  if (event.code !== "Space") return;
+  state.isSpacebarHeld = false;
+  updatePanCursor();
+}
+
+/** Toggles the dedicated Pan tool button on/off. */
+function togglePanTool() {
+  state.isPanToolActive = !state.isPanToolActive;
+  panToolBtn.classList.toggle("is-active", state.isPanToolActive);
+  panToolBtn.setAttribute("aria-pressed", String(state.isPanToolActive));
+  updatePanCursor();
+}
+
+function initZoomControls() {
+  zoomInBtn.addEventListener("click", zoomInViaButton);
+  zoomOutBtn.addEventListener("click", zoomOutViaButton);
+
+  // { passive: false } is required so event.preventDefault() inside
+  // handleWheelZoom actually stops the page from scrolling too.
+  canvasViewport.addEventListener("wheel", handleWheelZoom, { passive: false });
+}
+
+function initPanControls() {
+  panToolBtn.addEventListener("click", togglePanTool);
+
+  canvasViewport.addEventListener("mousedown", handleViewportMouseDown);
+  window.addEventListener("mousemove", handleWindowMouseMoveForPan);
+  window.addEventListener("mouseup", handleWindowMouseUpForPan);
+  window.addEventListener("blur", handleWindowMouseUpForPan);
+
+  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("keyup", handleKeyUp);
+}
+
+/* ---------------------------------------------------------------------
+   7. TOOL + COLOR UI WIRING
    --------------------------------------------------------------------- */
 
 function setTool(tool) {
   state.currentTool = tool;
+
+  // Picking a drawing tool always exits pan mode — mirrors the mental
+  // model of Photoshop/Figma, where tools are mutually exclusive even
+  // though Pan isn't tracked in state.currentTool itself (see section 6).
+  state.isPanToolActive = false;
+  panToolBtn.classList.remove("is-active");
+  panToolBtn.setAttribute("aria-pressed", "false");
+  updatePanCursor();
 
   toolButtons.forEach((btn) => {
     const isActive = btn.dataset.tool === tool;
@@ -365,7 +690,7 @@ function initSizeControls() {
 }
 
 /* ---------------------------------------------------------------------
-   7. CLEAR CANVAS
+   8. CLEAR CANVAS
    --------------------------------------------------------------------- */
 
 function clearCanvas() {
@@ -384,7 +709,7 @@ function initClearButton() {
 }
 
 /* ---------------------------------------------------------------------
-   8. PNG EXPORT
+   9. PNG EXPORT
    --------------------------------------------------------------------- */
 
 /**
@@ -442,7 +767,7 @@ function initExportButton() {
 }
 
 /* ---------------------------------------------------------------------
-   9. INIT
+   10. INIT
    --------------------------------------------------------------------- */
 
 function init() {
@@ -452,6 +777,8 @@ function init() {
   initSizeControls();
   initClearButton();
   initExportButton();
+  initZoomControls();
+  initPanControls();
 
   generateGrid(state.cols, state.rows);
   setTool("pen");

@@ -144,11 +144,59 @@
 
     <!-- ----------------------------- CANVAS STAGE ------------------------ -->
     <main class="canvas-stage">
-      <div class="canvas-frame">
-        <div id="pixel-canvas" class="pixel-canvas"></div>
+
+      <!-- View controls: Pan tool, then Zoom out / percentage / Zoom in.
+           Everything here is purely a "view" concern — none of it ever
+           touches the artwork data, only how the canvas is transformed
+           on screen (see script.js section 6, ZOOM & PAN). -->
+      <div class="canvas-toolbar" role="group" aria-label="View controls">
+        <button
+          id="pan-tool-btn"
+          class="zoom-btn"
+          type="button"
+          aria-label="Pan tool"
+          aria-pressed="false"
+          title="Pan tool (or hold Space)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+            <path d="M14 10V4a2 2 0 0 0-4 0v6" />
+            <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
+            <path d="M18 8a2 2 0 0 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-4.53a1.63 1.63 0 0 1 2.3-2.3L6 13" />
+          </svg>
+        </button>
+
+        <span class="toolbar-divider" aria-hidden="true"></span>
+
+        <button id="zoom-out-btn" class="zoom-btn" type="button" aria-label="Zoom out" title="Zoom out">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M5 12h14" />
+          </svg>
+        </button>
+
+        <span id="zoom-level" class="zoom-level" aria-live="polite">100%</span>
+
+        <button id="zoom-in-btn" class="zoom-btn" type="button" aria-label="Zoom in" title="Zoom in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 5v14" />
+            <path d="M5 12h14" />
+          </svg>
+        </button>
       </div>
+
+      <div class="canvas-frame">
+        <!-- Scrollable-in-spirit "window" onto the canvas — but panning
+             is now done with a CSS transform (translate), not native
+             scrollbars, so this uses overflow: hidden rather than auto.
+             Anything the zoomed/panned canvas pushes outside this box
+             is simply clipped instead of growing the page layout. -->
+        <div class="canvas-viewport" id="canvas-viewport">
+          <div id="pixel-canvas" class="pixel-canvas"></div>
+        </div>
+      </div>
+
       <p class="hint-text hint-text--center">
-        Click to paint · Click and drag to draw continuously
+        Click to paint · Drag to draw · Scroll to zoom · Hold Space + drag to pan
       </p>
     </main>
 

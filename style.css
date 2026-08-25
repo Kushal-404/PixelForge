@@ -463,22 +463,151 @@ button {
   box-shadow: var(--shadow-panel);
 }
 
-/* The grid itself. Column/row counts are written as inline styles by
-   JS at creation time (see script.js -> generateGrid). The checkerboard
-   pattern behind it mimics the transparency indicator used by design
-   tools, so an erased / never-painted pixel is easy to read as "empty"
-   rather than "black". */
+/* --- view toolbar (pan tool + zoom controls) -------------------------- */
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 6px 10px;
+  box-shadow: var(--shadow-panel);
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex: none;
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast),
+    transform var(--transition-fast), opacity var(--transition-fast);
+}
+
+.zoom-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.zoom-btn:hover {
+  color: var(--text);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.zoom-btn:active {
+  transform: translateY(0);
+}
+
+/* Shared "this control is currently engaged" look — used by the Pan
+   tool toggle (same visual language as .tool-btn.is-active). */
+.zoom-btn.is-active {
+  background: rgba(124, 92, 255, 0.14);
+  border-color: var(--accent-violet);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent-violet) inset, 0 0 12px -4px var(--accent-violet);
+}
+
+/* Hitting a zoom limit disables the relevant button rather than
+   letting it silently do nothing, so the ceiling/floor is visible. */
+.zoom-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  border-color: var(--border);
+  color: var(--text-dim);
+}
+
+.zoom-level {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  min-width: 46px;
+  text-align: center;
+  user-select: none;
+}
+
+/* The "window" onto the canvas. Panning used to rely on native
+   scrollbars (overflow: auto); it's now done entirely with a CSS
+   transform on #pixel-canvas (translate + scale), so anything the
+   canvas is moved or scaled outside this box must simply be clipped
+   instead of growing the page — hence overflow: hidden.
+
+   position: relative makes this element the coordinate frame that all
+   of the pan/zoom math in script.js is relative to (mouse positions
+   are measured from THIS element's top-left via getBoundingClientRect).
+
+   The two state classes below are toggled by JS to satisfy the
+   cursor: grab / grabbing requirement:
+     .is-pan-mode  → pan is available (Pan tool on, or Space held)
+     .is-panning   → a pan drag is actively in progress right now
+   .is-panning is listed after .is-pan-mode so it wins when both are
+   present (same specificity, later source order). */
+.canvas-viewport {
+  position: relative;
+  width: min(64vmin, 560px);
+  max-height: min(64vmin, 560px);
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.canvas-viewport.is-pan-mode {
+  cursor: grab;
+}
+
+.canvas-viewport.is-panning {
+  cursor: grabbing;
+}
+
+/* While actively panning, don't let the per-pixel hover ring imply
+   "click here to paint" — it's misleading when a click-drag right now
+   would pan the view instead. */
+.canvas-viewport.is-pan-mode .pixel:hover {
+  box-shadow: none;
+}
+
+/* The grid itself. Column/row counts and the aspect-ratio are written
+   as inline styles by JS at creation time (see script.js ->
+   generateGrid). Pan + zoom are applied here too, as a single
+   `transform: translate(x, y) scale(s)` (see script.js -> applyTransform).
+   The checkerboard pattern behind it mimics the transparency indicator
+   used by design tools, so an erased / never-painted pixel is easy to
+   read as "empty" rather than "black". */
 .pixel-canvas {
   display: grid;
-  width: min(64vmin, 560px);
+  width: 100%;
   background-image: repeating-conic-gradient(
     var(--check-a) 0% 25%,
     var(--check-b) 0% 50%
   );
   background-size: 20px 20px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
   overflow: hidden;
+  /* transform-origin: 0 0 (top-left) rather than the default 50% 50%.
+     This is what makes the cursor-anchored zoom math in script.js work
+     out to a simple translate/scale formula — see the comments above
+     zoomAtPoint() for the full derivation. */
+  transform-origin: 0 0;
+  /* Deliberately NO `transition` here: pan and wheel-zoom both update
+     the transform on every single mousemove/wheel event, so the
+     transform needs to track the input 1:1. Animating it would make
+     the canvas visibly lag behind the cursor while dragging/scrolling —
+     the opposite of what a design-tool-style zoom/pan should feel like. */
   /* Prevents the drag gesture from also selecting page text */
   user-select: none;
   -webkit-user-select: none;
