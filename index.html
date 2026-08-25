@@ -150,6 +150,19 @@
            touches the artwork data, only how the canvas is transformed
            on screen (see script.js section 6, ZOOM & PAN). -->
       <div class="canvas-toolbar" role="group" aria-label="View controls">
+        <button id="undo-btn" class="zoom-btn" type="button" aria-label="Undo" title="Undo (Ctrl+Z)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+          </svg>
+        </button>
+
+        <button id="redo-btn" class="zoom-btn" type="button" aria-label="Redo" title="Redo (Ctrl+Y)">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 7v6h-6"></path>
+            <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+          </svg>
+        </button>
         <button
           id="pan-tool-btn"
           class="zoom-btn"
